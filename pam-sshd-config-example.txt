@@ -1,0 +1,95 @@
+# PAM Configuration for SSH Login Notifications
+#
+# This file shows the configuration needed in /etc/pam.d/sshd
+# to trigger email notifications on SSH logins.
+#
+# IMPORTANT: Do NOT replace your entire /etc/pam.d/sshd file with this!
+# Only ADD the line below to your existing configuration.
+
+# ============================================================================
+# CONFIGURATION LINE TO ADD
+# ============================================================================
+
+# Add this line at the END of your /etc/pam.d/sshd file:
+# (after all auth, account, password, and session lines)
+
+session optional pam_exec.so seteuid /usr/local/bin/ssh-login-notify.sh
+
+
+# ============================================================================
+# EXPLANATION
+# ============================================================================
+
+# session       - Runs after successful authentication during session setup
+# optional      - Won't block login if the script fails
+# pam_exec.so   - PAM module that executes external scripts
+# seteuid       - Run script with the user's UID (not root)
+# /usr/local/bin/ssh-login-notify.sh - Full path to the notification script
+
+
+# ============================================================================
+# TYPICAL /etc/pam.d/sshd STRUCTURE (for reference)
+# ============================================================================
+
+# Your file will look something like this after adding the line:
+#
+# # PAM configuration for the Secure Shell service
+#
+# # Standard Un*x authentication.
+# @include common-auth
+#
+# # Disallow non-root logins when /etc/nologin exists.
+# account    required     pam_nologin.so
+#
+# # Standard Un*x authorization.
+# @include common-account
+#
+# # Standard Un*x session setup and teardown.
+# @include common-session
+#
+# # Print the message of the day upon successful login.
+# session    optional     pam_motd.so motd=/run/motd.dynamic
+# session    optional     pam_motd.so noupdate
+#
+# # Print the status of the user's mailbox upon successful login.
+# session    optional     pam_mail.so standard noenv
+#
+# # Set up user limits from /etc/security/limits.conf.
+# session    required     pam_limits.so
+#
+# # Read environment variables from /etc/environment and
+# # /etc/security/pam_env.conf.
+# session    required     pam_env.so
+#
+# # SELinux needs to intervene at login time to ensure that the process
+# # starts in the proper default security context.
+# session [success=ok ignore=ignore module_unknown=ignore default=bad] pam_selinux.so open
+#
+# # Standard Un*x password updating.
+# @include common-password
+#
+# session [success=ok ignore=ignore module_unknown=ignore default=bad] pam_selinux.so close
+#
+# # ADD YOUR SSH LOGIN NOTIFICATION LINE HERE:
+# session optional pam_exec.so seteuid /usr/local/bin/ssh-login-notify.sh
+
+
+# ============================================================================
+# ALTERNATIVE: Run as root (if you need elevated privileges)
+# ============================================================================
+
+# If your script needs root privileges (e.g., to write to protected directories),
+# remove the 'seteuid' option:
+#
+# session optional pam_exec.so /usr/local/bin/ssh-login-notify.sh
+
+
+# ============================================================================
+# DEBUGGING
+# ============================================================================
+
+# If emails aren't being sent, you can add debugging to PAM:
+# 1. Check syslog for messages: sudo grep ssh-login-notify /var/log/auth.log
+# 2. Test the script manually: sudo /usr/local/bin/ssh-login-notify.sh
+# 3. Enable PAM debugging by adding 'debug' to the pam_exec line:
+#    session optional pam_exec.so debug seteuid /usr/local/bin/ssh-login-notify.sh
